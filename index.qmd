@@ -1,0 +1,433 @@
+---
+title: "Conformal Inference with Tidymodels"
+author: "Max Kuhn"
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(tidymodels)
+library(gganimate)
+library(probably)
+library(rules)
+library(splines)
+
+# ------------------------------------------------------------------------------
+
+tidymodels_prefer()
+theme_set(theme_bw())
+options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
+
+# ------------------------------------------------------------------------------
+data(ames)
+ames <- 
+  ames %>% 
+  select(Sale_Price, Latitude) %>% 
+  mutate(Sale_Price = log10(Sale_Price))
+
+ames_grid <- ames %>% select(Latitude) %>% arrange(Latitude)
+
+# ------------------------------------------------------------------------------
+
+set.seed(129)
+ames_split <- initial_validation_split(ames, strata = Sale_Price, prop = c(0.6, 0.3))
+
+ames_train <- training(ames_split)
+ames_cal   <- validation(ames_split)
+ames_test  <- testing(ames_split)
+
+ames_rec <- 
+  recipe(Sale_Price ~ Latitude, data = ames_train) %>% 
+  step_spline_natural(Latitude, deg_free = 25)
+
+ames_wflow <- workflow(ames_rec, linear_reg())
+ames_spline_fit <- linear_reg() %>% fit(Sale_Price ~ ns(Latitude, df = 25), data = ames_train)
+pred_val <- augment(ames_spline_fit, ames_cal)
+val_n <- nrow(pred_val)
+  
+get_samples <- function(n) {
+  set.seed(1)
+  tibble(value = pred_val$.resid[1:n],
+         sample_size = n)
+}
+samples <- map_dfr(c((1:219) * 4, val_n), get_samples)
+max_size <- max(samples$sample_size)
+final_sample <- samples %>%  filter(sample_size == max_size)
+quant_90 <- quantile(pred_val$.resid, probs = c(0.05, 0.95))
+y_rng <- c(4, 6)
+```
+
+
+```{r}
+#| label: sampling-animation
+#| include: false
+#| eval: false
+
+p <- 
+  samples %>% 
+  ggplot(aes(x = value)) + 
+  geom_histogram(col = "white", bins = 25) + 
+  geom_rug(alpha = 1/ 4) +
+  transition_states(sample_size, state_length = 2, transition_length = 1) +
+  labs(title = "sample size: {closest_state}") +
+  lims(x = c(-0.8, 1)) +
+  labs(x = "Sample Values", y = NULL) +
+  coord_flip() +
+  theme_bw()
+
+anim_save(
+  filename = "figures/anime_sampling.gif",
+  animation = p,
+  height = 5,
+  width = 5, 
+  units = "in", 
+  res = 150,
+  duration = 20,
+  fps = 20,
+  rewind = FALSE
+)
+
+```
+
+
+```{r}
+#| label: grow-data
+#| echo: false
+#| out-width: 90%
+#| fig-width: 5
+#| fig-height: 5
+#| fig-align: "center" 
+#| eval: false
+
+knitr::include_graphics("figures/anime_sampling.gif")
+```
+
+## So We Have a Distribution
+
+
+```{r}
+#| label: final-data
+#| echo: false
+#| out-width: 90%
+#| fig-width: 5
+#| fig-height: 5
+#| fig-align: "center" 
+
+final_sample %>% 
+  ggplot(aes(x = value)) + 
+  geom_histogram(col = "white", bins = 25) + 
+  geom_rug(alpha = 1/ 4) +
+  labs(title = paste("sample size:", max_size)) +
+  lims(x = c(-0.8, 1)) +
+  labs(x = "Sample Values", y = NULL) +
+  coord_flip()
+```
+
+## A Discordant Value?
+
+```{r}
+#| label: discordant-data
+#| echo: false
+#| out-width: 90%
+#| fig-width: 5
+#| fig-height: 5
+#| fig-align: "center" 
+
+final_sample %>% 
+  ggplot(aes(x = value)) + 
+  geom_histogram(col = "white", bins = 25) + 
+  geom_rug(alpha = 1/ 4) +
+  labs(title = paste("sample size:", max_size, "+ 1")) +
+  lims(x = c(-0.8, 1)) +
+  labs(x = "Sample Values", y = NULL) +
+  geom_segment(
+    data = tibble(x = 1, xend = 1, y = 100, yend = 0),
+    aes(x = x, xend = xend, y = y, yend = yend),
+    col = "#C34A36",
+    linewidth = 1.2,
+    arrow = arrow(length = unit(0.03, "npc"))
+  ) +
+  coord_flip()
+```
+
+
+
+## A Simple Probability Statement
+
+
+(not a tolerance interval)
+
+
+## A Simple Probability Statement
+
+```{r}
+#| label: data-quantiles
+#| echo: false
+#| out-width: 90%
+#| fig-width: 5
+#| fig-height: 5
+#| fig-align: "center" 
+
+final_sample %>% 
+  ggplot(aes(x = value)) + 
+  geom_histogram(col = "white", bins = 25) + 
+  geom_rug(alpha = 1/ 4) +
+  labs(title = paste("sample size:", max_size, "+ 1")) +
+  lims(x = c(-0.8, 1)) +
+  labs(x = "Sample Values", y = NULL) +
+  geom_vline(xintercept = quant_90[1], col = "#00C9A7", linewidth = 1.2) +
+  geom_vline(xintercept = quant_90[2], col = "#00C9A7", linewidth = 1.2) +
+  geom_segment(
+    data = tibble(x = 1, xend = 1, y = 100, yend = 0),
+    aes(x = x, xend = xend, y = y, yend = yend),
+    col = "#C34A36",
+    linewidth = 1.2,
+    arrow = arrow(length = unit(0.03, "npc"))
+  ) +
+  coord_flip()
+```
+
+
+## What if the samples were residuals?
+
+```{r}
+#| label: residual-quantiles
+#| echo: false
+#| out-width: 90%
+#| fig-width: 5
+#| fig-height: 5
+#| fig-align: "center" 
+
+final_sample %>% 
+  ggplot(aes(x = value)) + 
+  geom_histogram(col = "white", bins = 25) + 
+  geom_rug(alpha = 1/ 4) +
+  labs(title = paste("sample size:", max_size)) +
+  lims(x = c(-0.8, 1)) +
+  labs(x = "Out-of-Sample Residuals", y = NULL) +
+  geom_vline(xintercept = quant_90[1], col = "#00C9A7", linewidth = 1.2) +
+  geom_vline(xintercept = quant_90[2], col = "#00C9A7", linewidth = 1.2)  +
+  coord_flip()
+```
+
+## Applied to a model...
+
+Centering this interval around the predictions...
+
+
+```{r}
+#| label: ames-fit
+#| echo: false
+#| out-width: 90%
+#| fig-width: 6
+#| fig-height: 4.25
+#| fig-align: "center" 
+
+augment(ames_spline_fit, ames_test) %>% 
+  mutate(
+    .pred_lower = .pred - quant_90[1],
+    .pred_upper = .pred - quant_90[2]
+  ) %>% 
+  ggplot(aes(Latitude)) + 
+  geom_point(aes(y = Sale_Price), alpha = .7) + 
+  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
+  geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2, alpha = 1/ 2) + 
+  geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2, alpha = 1/ 2) +  
+  labs(y = "Sale Price (USD)") +
+  lims(y = y_rng)
+```
+
+
+
+## Is this a prediction interval? 
+
+Prediction interval with level $\alpha$: 
+
+> A range of values that is likely to contain the value of a single new _observation_ with probability $1-\alpha$. 
+
+(note: not the true prediction)
+
+Conformal intervals are using a completely different approach to these limits: 
+
+ * _Very_ frequentist
+ * Most methods have an _average_ coverage of  $1-\alpha$
+
+## Setup the data
+
+```{r}
+#| label: data-splits
+
+library(tidymodels)
+
+data(ames)
+ames <- 
+  ames %>% 
+  select(Sale_Price, Latitude) %>% 
+  mutate(Sale_Price = log10(Sale_Price))
+
+set.seed(129)
+# 60% in training, 30% in calibration, and 10% in testing
+ames_split <- initial_validation_split(ames, strata = Sale_Price, prop = c(0.6, .30))
+
+ames_train <- training(ames_split)
+ames_cal <- validation(ames_split)
+ames_test <- testing(ames_split)
+```
+
+## A Cubist model
+
+```{r}
+#| label: cubist
+library(rules)
+
+cubist_spec <- cubist_rules(committees = 25)
+ames_wflow <- workflow(Sale_Price ~ Latitude, cubist_spec)
+
+ames_fit <- ames_wflow %>% fit(data = ames_train)
+```
+
+The fitted model is an ensemble of `r ames_fit$fit$fit$fit %>% tidy() %>% nrow()` linear regression models across different ranges of the predictor. 
+
+
+## Split Conformal Inference
+
+```{r}
+#| label: cubist-fit
+library(probably)
+
+conf_split <- int_conformal_split(ames_fit, ames_cal)
+
+conf_split_pred <- 
+  predict(conf_split, ames_grid, level = 0.90) %>% 
+  bind_cols(ames_grid)
+
+conf_split_pred
+```
+
+## Split Conformal Inference
+
+```{r}
+#| label: cubist-split
+#| echo: false
+#| out-width: 90%
+#| fig-width: 6
+#| fig-height: 4.25
+#| fig-align: "center" 
+
+conf_split_test <- 
+  predict(conf_split, ames_test, level = 0.90) %>% 
+  bind_cols(ames_test)
+
+conf_split_pred %>% 
+  ggplot(aes(Latitude)) + 
+  geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
+  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
+  geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
+  geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2)  +  
+  labs(y = "Sale Price (USD)") +
+  lims(y = y_rng)
+```
+
+## CV+ Inference
+
+```{r}
+#| label: cv-plus
+set.seed(322)
+
+ames_rs <- vfold_cv(ames_train)
+
+ctrl <- control_resamples(save_pred = TRUE, extract = I)
+
+ames_res <- ames_wflow %>% fit_resamples(ames_rs, control = ctrl)
+  
+conf_cv <- int_conformal_cv(ames_res)
+
+conf_cv_pred <- 
+  predict(conf_cv, ames_grid, level = 0.90) %>% 
+  bind_cols(ames_grid)
+```
+
+## CV+ Inference
+
+```{r}
+#| label: cubist-cv
+#| echo: false
+#| out-width: 90%
+#| fig-width: 6
+#| fig-height: 4.25
+#| fig-align: "center" 
+
+conf_cv_test <- 
+  predict(conf_cv, ames_test, level = 0.90) %>% 
+  bind_cols(ames_test)
+
+conf_cv_pred %>% 
+  ggplot(aes(Latitude)) + 
+  geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
+  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
+  geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
+  geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2)  +  
+  labs(y = "Sale Price (USD)") +
+  lims(y = y_rng)
+```
+
+## Conformalized quantile regression (split)
+
+```{r}
+#| label: cv-quant
+
+# We have to pass the data sets and pre-set the interval coverage:
+set.seed(837)
+conf_qntl <-
+  int_conformal_quantile(ames_fit, ames_train, ames_cal, level = 0.90, ntree = 2000)
+
+conf_qntl_pred <- 
+  predict(conf_qntl, ames_grid) %>% 
+  bind_cols(ames_grid)
+```
+
+## Conformalized quantile regression (split)
+
+```{r}
+#| label: cubist-quantile
+#| echo: false
+#| out-width: 90%
+#| fig-width: 6
+#| fig-height: 4.25
+#| fig-align: "center" 
+
+conf_qntl_test <- 
+  predict(conf_qntl, ames_test) %>% 
+  bind_cols(ames_test)
+
+conf_qntl_pred %>% 
+  ggplot(aes(Latitude)) + 
+  geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
+  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
+  geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 3/4) + 
+  geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 3/4)  +  
+  labs(y = "Sale Price (USD)") +
+  lims(y = y_rng)
+```
+
+## Does this work? 
+
+```{r}
+#| label: coverage
+#| include: false
+
+coverage <- function(x) {
+    res <- mean(x$Sale_Price >= x$.pred_lower & x$Sale_Price <= x$.pred_upper)
+    round(res * 100, 1)
+}
+```
+
+For our test set, the coverage for 90% predictions intervals: 
+
+ * split conformal: `r coverage(conf_split_test)`%
+ * CV+: `r coverage(conf_cv_test)`%
+ * Conformalized quantile regression: `r coverage(conf_qntl_test)`%
+
+I also did a lot of simulations to make sure that the coverage was on-target. 
+
+These can be found at [`https://github.com/topepo/conformal_sim`](https://github.com/topepo/conformal_sim). 

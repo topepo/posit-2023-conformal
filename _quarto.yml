@@ -1,0 +1,21 @@
+project:
+  title: "posit-2023-conformal"
+  output-dir: docs
+
+format:
+  revealjs: 
+    slide-number: true
+    footer: <https://topepo.github.io/posit-2023-conformal>
+    theme: [tidymodels.scss]
+    width: 1280
+    height: 720
+    
+knitr:
+  opts_chunk: 
+    echo: true
+    collapse: true
+    comment: "#>"
+    fig.path: "figures/"
+    
+fig-format: svg
+
