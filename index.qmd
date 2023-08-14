@@ -40,7 +40,7 @@ ames_rec <-
   recipe(Sale_Price ~ Latitude, data = ames_train) %>% 
   step_spline_natural(Latitude, deg_free = 25)
 
-ames_wflow <- workflow(ames_rec, linear_reg())
+cubist_wflow <- workflow(ames_rec, linear_reg())
 ames_spline_fit <- linear_reg() %>% fit(Sale_Price ~ ns(Latitude, df = 25), data = ames_train)
 pred_val <- augment(ames_spline_fit, ames_cal)
 val_n <- nrow(pred_val)
@@ -102,7 +102,7 @@ anim_save(
 knitr::include_graphics("figures/anime_sampling.gif")
 ```
 
-## So We Have a Distribution
+## We've accumulated some data...
 
 
 ```{r}
@@ -123,7 +123,7 @@ final_sample %>%
   coord_flip()
 ```
 
-## A Discordant Value?
+## Is this new data point discordant?
 
 ```{r}
 #| label: discordant-data
@@ -158,7 +158,7 @@ final_sample %>%
 (not a tolerance interval)
 
 
-## A Simple Probability Statement
+## Use quantiles to define "conformity"
 
 ```{r}
 #| label: data-quantiles
@@ -230,9 +230,9 @@ augment(ames_spline_fit, ames_test) %>%
   ) %>% 
   ggplot(aes(Latitude)) + 
   geom_point(aes(y = Sale_Price), alpha = .7) + 
-  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
-  geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2, alpha = 1/ 2) + 
-  geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2, alpha = 1/ 2) +  
+  geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
+  geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
+  geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2) +  
   labs(y = "Sale Price (USD)") +
   lims(y = y_rng)
 ```
@@ -252,6 +252,20 @@ Conformal intervals are using a completely different approach to these limits:
  * _Very_ frequentist
  * Most methods have an _average_ coverage of  $1-\alpha$
 
+## Pros/Cons
+
+* Basic methods assume exchangeability of the data. 
+  - Specialized methods for time series (see the modeltime package!).
+* Can work with any regression or classification model.
+  - We've only implemented regression so far.
+
+## Pros/Cons
+
+* Relatively fast (except for "full" conformal inference).
+* Extrapolating beyond training/calibration sets can go _really_ poorly.
+  - The applicable package is a big help with this.
+* Probably not great for small sample sizes.
+
 ## Setup the data
 
 ```{r}
@@ -264,15 +278,30 @@ ames <-
   ames %>% 
   select(Sale_Price, Latitude) %>% 
   mutate(Sale_Price = log10(Sale_Price))
+```
 
+
+## Spend the data
+
+```{r}
+#| label: data-spend
+#| code-line-numbers: "|4|6|9|"
 set.seed(129)
 # 60% in training, 30% in calibration, and 10% in testing
-ames_split <- initial_validation_split(ames, strata = Sale_Price, prop = c(0.6, .30))
+ames_split <-
+  initial_validation_split(ames, 
+                           strata = Sale_Price, 
+                           prop = c(0.6, .30))
 
 ames_train <- training(ames_split)
-ames_cal <- validation(ames_split)
-ames_test <- testing(ames_split)
+ames_cal   <- validation(ames_split) # Use as calibration set
+ames_test  <- testing(ames_split)
+
+# Setup some resampling for later use
+set.seed(322)
+ames_folds <- vfold_cv(ames_train, v = 10)
 ```
+
 
 ## A Cubist model
 
@@ -281,27 +310,30 @@ ames_test <- testing(ames_split)
 library(rules)
 
 cubist_spec <- cubist_rules(committees = 25)
-ames_wflow <- workflow(Sale_Price ~ Latitude, cubist_spec)
+cubist_wflow <- workflow(Sale_Price ~ Latitude, cubist_spec)
 
-ames_fit <- ames_wflow %>% fit(data = ames_train)
+cubist_fit <- cubist_wflow %>% fit(data = ames_train)
 ```
 
-The fitted model is an ensemble of `r ames_fit$fit$fit$fit %>% tidy() %>% nrow()` linear regression models across different ranges of the predictor. 
+<br>
+
+The fitted model is an ensemble of `r cubist_fit$fit$fit$fit %>% tidy() %>% nrow()` linear regression models across different ranges of the predictor. 
 
 
 ## Split Conformal Inference
 
 ```{r}
 #| label: cubist-fit
+#| code-line-numbers: "|1,3|6|"
 library(probably)
 
-conf_split <- int_conformal_split(ames_fit, ames_cal)
+conf_split <- int_conformal_split(cubist_fit, cal_data = ames_cal)
 
-conf_split_pred <- 
-  predict(conf_split, ames_grid, level = 0.90) %>% 
-  bind_cols(ames_grid)
+conf_split_test <- 
+  predict(conf_split, ames_test, level = 0.90) %>% 
+  bind_cols(ames_test)
 
-conf_split_pred
+conf_split_test %>% slice(1)
 ```
 
 ## Split Conformal Inference
@@ -314,14 +346,14 @@ conf_split_pred
 #| fig-height: 4.25
 #| fig-align: "center" 
 
-conf_split_test <- 
-  predict(conf_split, ames_test, level = 0.90) %>% 
-  bind_cols(ames_test)
+conf_split_pred <- 
+  predict(conf_split, ames_grid, level = 0.90) %>% 
+  bind_cols(ames_grid)
 
 conf_split_pred %>% 
   ggplot(aes(Latitude)) + 
   geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
-  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
+  geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
   geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
   geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2)  +  
   labs(y = "Sale Price (USD)") +
@@ -332,19 +364,19 @@ conf_split_pred %>%
 
 ```{r}
 #| label: cv-plus
-set.seed(322)
-
-ames_rs <- vfold_cv(ames_train)
-
+#| code-line-numbers: "|1-2|8|"
+# 'extract' to save the 10 fitted models
 ctrl <- control_resamples(save_pred = TRUE, extract = I)
 
-ames_res <- ames_wflow %>% fit_resamples(ames_rs, control = ctrl)
-  
-conf_cv <- int_conformal_cv(ames_res)
+cubist_resampled <- 
+  cubist_wflow %>% 
+  fit_resamples(resamples = ames_folds, control = ctrl)
 
-conf_cv_pred <- 
-  predict(conf_cv, ames_grid, level = 0.90) %>% 
-  bind_cols(ames_grid)
+conf_cv <- int_conformal_cv(cubist_resampled)
+
+conf_cv_test <- 
+  predict(conf_cv, ames_test, level = 0.90) %>% 
+  bind_cols(ames_test)
 ```
 
 ## CV+ Inference
@@ -357,36 +389,41 @@ conf_cv_pred <-
 #| fig-height: 4.25
 #| fig-align: "center" 
 
-conf_cv_test <- 
-  predict(conf_cv, ames_test, level = 0.90) %>% 
-  bind_cols(ames_test)
+conf_cv_pred <- 
+  predict(conf_cv, ames_grid, level = 0.90) %>% 
+  bind_cols(ames_grid)
 
 conf_cv_pred %>% 
   ggplot(aes(Latitude)) + 
   geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
-  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
+  geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
   geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
   geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2)  +  
   labs(y = "Sale Price (USD)") +
   lims(y = y_rng)
 ```
 
-## Conformalized quantile regression (split)
+## Conformalized quantile regression
 
 ```{r}
 #| label: cv-quant
-
-# We have to pass the data sets and pre-set the interval coverage:
+#| code-line-numbers: "|5-9|12|"
+# We have to pass the data sets and pre-set 
+# the interval coverage:
 set.seed(837)
 conf_qntl <-
-  int_conformal_quantile(ames_fit, ames_train, ames_cal, level = 0.90, ntree = 2000)
+  int_conformal_quantile(cubist_fit,
+                         train_data = ames_train,
+                         cal_data = ames_cal,  #<- split sample 
+                         level = 0.90,
+                         ntree = 2000)
 
-conf_qntl_pred <- 
-  predict(conf_qntl, ames_grid) %>% 
-  bind_cols(ames_grid)
+conf_qntl_test <- 
+  predict(conf_qntl, ames_test) %>% 
+  bind_cols(ames_test)
 ```
 
-## Conformalized quantile regression (split)
+## Conformalized quantile regression
 
 ```{r}
 #| label: cubist-quantile
@@ -396,14 +433,14 @@ conf_qntl_pred <-
 #| fig-height: 4.25
 #| fig-align: "center" 
 
-conf_qntl_test <- 
-  predict(conf_qntl, ames_test) %>% 
-  bind_cols(ames_test)
+conf_qntl_pred <- 
+  predict(conf_qntl, ames_grid) %>% 
+  bind_cols(ames_grid)
 
 conf_qntl_pred %>% 
   ggplot(aes(Latitude)) + 
   geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
-  geom_line(aes(y = .pred), col = "#AF5D00", linewidth = 1) + 
+  geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
   geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 3/4) + 
   geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 3/4)  +  
   labs(y = "Sale Price (USD)") +
@@ -424,7 +461,7 @@ coverage <- function(x) {
 
 For our test set, the coverage for 90% predictions intervals: 
 
- * split conformal: `r coverage(conf_split_test)`%
+ * Split conformal: `r coverage(conf_split_test)`%
  * CV+: `r coverage(conf_cv_test)`%
  * Conformalized quantile regression: `r coverage(conf_qntl_test)`%
 

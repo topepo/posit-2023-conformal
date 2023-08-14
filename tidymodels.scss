@@ -14,6 +14,8 @@ $charcoal: #1a162d;
 // fonts
 $font-family-sans-serif: 'Jost', sans-serif !default;
 $font-family-serif: 'Zilla Slab', serif !default;
+$code-block-font-size: 0.66em;
+$presentation-font-size-root: 43px;
 
 // colors
 $body-bg: white !default;
@@ -23,6 +25,7 @@ $link-color: $cranberry !default;
 // headings
 $presentation-heading-font: 'DM Sans', sans-serif !default;
 $presentation-heading-color: $charcoal !default;
+
 
 /*-- scss:rules --*/
 
