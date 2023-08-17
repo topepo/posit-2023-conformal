@@ -455,7 +455,7 @@ Max Kuhn
 <ul>
 <li>Basic methods assume exchangeability of the data.
 <ul>
-<li>Specialized methods for time series (see the modeltime package!).</li>
+<li>Specialized methods for time series (see the <a href="https://business-science.github.io/modeltime/reference/modeltime_forecast.html">modeltime package</a>!).</li>
 </ul></li>
 <li>Can work with any regression or classification model.
 <ul>
@@ -467,7 +467,7 @@ Max Kuhn
 <h2>Pros/Cons</h2>
 <ul>
 <li>Relatively fast (except for “full” conformal inference).</li>
-<li>Extrapolating beyond training/calibration sets can go <em>really</em> poorly.
+<li>Extrapolating beyond training/calibration sets can go <a href="https://www.tidymodels.org/learn/models/conformal-regression/#the-major-downside"><em>really</em> poorly</a>
 <ul>
 <li>The applicable package is a big help with this.</li>
 </ul></li>
@@ -593,6 +593,18 @@ Max Kuhn
 </ul>
 <p>I also did a lot of simulations to make sure that the coverage was on-target.</p>
 <p>These can be found at <a href="https://github.com/topepo/conformal_sim"><code>https://github.com/topepo/conformal_sim</code></a>.</p>
+</section>
+<section id="section" class="slide level2">
+<h2></h2>
+<p>What’s next?</p>
+<ul>
+<li>Classification models
+<ul>
+<li>The focus is often to cluster predicted classes that have equivocal probabilities.</li>
+</ul></li>
+<li>New methodologies as they pop up.</li>
+</ul>
+<p>Thanks: the tidymodels group, Joe Rickert, and the conference committee.</p>
 <div class="footer footer-default">
 <p><a href="https://topepo.github.io/posit-2023-conformal" class="uri">https://topepo.github.io/posit-2023-conformal</a></p>
 </div>
