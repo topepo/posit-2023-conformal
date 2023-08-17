@@ -55,6 +55,7 @@ max_size <- max(samples$sample_size)
 final_sample <- samples %>%  filter(sample_size == max_size)
 quant_90 <- quantile(pred_val$.resid, probs = c(0.05, 0.95))
 y_rng <- c(4, 6)
+outlier_at <- -0.48
 ```
 
 
@@ -102,7 +103,7 @@ anim_save(
 knitr::include_graphics("figures/anime_sampling.gif")
 ```
 
-## We've accumulated some data...
+## Let's start with some data...
 
 
 ```{r}
@@ -118,7 +119,6 @@ final_sample %>%
   geom_histogram(col = "white", bins = 25) + 
   geom_rug(alpha = 1/ 4) +
   labs(title = paste("sample size:", max_size)) +
-  lims(x = c(-0.8, 1)) +
   labs(x = "Sample Values", y = NULL) +
   coord_flip()
 ```
@@ -138,10 +138,9 @@ final_sample %>%
   geom_histogram(col = "white", bins = 25) + 
   geom_rug(alpha = 1/ 4) +
   labs(title = paste("sample size:", max_size, "+ 1")) +
-  lims(x = c(-0.8, 1)) +
   labs(x = "Sample Values", y = NULL) +
   geom_segment(
-    data = tibble(x = 1, xend = 1, y = 100, yend = 0),
+    data = tibble(x = outlier_at, xend = outlier_at, y = 100, yend = 0),
     aes(x = x, xend = xend, y = y, yend = yend),
     col = "#C34A36",
     linewidth = 1.2,
@@ -154,8 +153,16 @@ final_sample %>%
 
 ## A Simple Probability Statement
 
+Without making parametric assumptions, we could say
 
-(not a tolerance interval)
+$$Pr[Q_L< Y_{878+i} < Q_U] = 1 - \alpha$$
+where $Q_L$ and $Q_U$ are quantiles excluding $\alpha/2$ tail areas. 
+
+(note: not a tolerance interval)
+
+So, for some $\alpha$, we could say that data between $Q_L$ and $Q_U$ are "likely" to conform to our original, reference distribution. 
+
+(note: conformal methods use adjusted quantiles)
 
 
 ## Use quantiles to define "conformity"
@@ -173,12 +180,15 @@ final_sample %>%
   geom_histogram(col = "white", bins = 25) + 
   geom_rug(alpha = 1/ 4) +
   labs(title = paste("sample size:", max_size, "+ 1")) +
-  lims(x = c(-0.8, 1)) +
   labs(x = "Sample Values", y = NULL) +
   geom_vline(xintercept = quant_90[1], col = "#00C9A7", linewidth = 1.2) +
   geom_vline(xintercept = quant_90[2], col = "#00C9A7", linewidth = 1.2) +
+  annotate("text", y = 120, x = quant_90[1] * 1.4, label = "Lower 5% Quantile", 
+           col = "#00C9A7") +
+  annotate("text", y = 120, x = quant_90[2] * 1.4, label = "Upper 5% Quantile", 
+           col = "#00C9A7") +  
   geom_segment(
-    data = tibble(x = 1, xend = 1, y = 100, yend = 0),
+    data = tibble(x = outlier_at, xend = outlier_at, y = 100, yend = 0),
     aes(x = x, xend = xend, y = y, yend = yend),
     col = "#C34A36",
     linewidth = 1.2,
@@ -203,17 +213,53 @@ final_sample %>%
   geom_histogram(col = "white", bins = 25) + 
   geom_rug(alpha = 1/ 4) +
   labs(title = paste("sample size:", max_size)) +
-  lims(x = c(-0.8, 1)) +
   labs(x = "Out-of-Sample Residuals", y = NULL) +
   geom_vline(xintercept = quant_90[1], col = "#00C9A7", linewidth = 1.2) +
   geom_vline(xintercept = quant_90[2], col = "#00C9A7", linewidth = 1.2)  +
   coord_flip()
 ```
 
-## Applied to a model...
 
-Centering this interval around the predictions...
+## Linear regression with spline features
 
+
+```{r}
+#| label: ames-fit-only
+#| echo: false
+#| out-width: 90%
+#| fig-width: 6
+#| fig-height: 4.25
+#| fig-align: "center" 
+
+augment(ames_spline_fit, ames_train) %>% 
+  ggplot(aes(Latitude)) + 
+  geom_point(aes(y = Sale_Price), alpha = .7) + 
+  geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
+  labs(y = "Sale Price (USD)", title = paste0( "Training Set (n = ", nrow(ames_train), ")")) +
+  lims(y = y_rng)
+```
+
+## Compute residuals on other data
+
+```{r}
+#| label: ames-resid
+#| echo: false
+#| out-width: 90%
+#| fig-width: 6
+#| fig-height: 4.25
+#| fig-align: "center" 
+
+augment(ames_spline_fit, ames_cal) %>% 
+  ggplot(aes(x = Latitude)) + 
+  geom_segment(aes(xend = Latitude, yend = .pred, y = Sale_Price), alpha = .5) +
+  geom_point(aes(y = Sale_Price), alpha = .7, cex = .1) + 
+  geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
+  labs(y = "Sale Price (USD)", title = paste0( "Calibration Set (n = ", nrow(ames_cal), ")")) +
+  lims(y = y_rng)
+```
+
+
+## Center interval around predictions
 
 ```{r}
 #| label: ames-fit
@@ -223,17 +269,17 @@ Centering this interval around the predictions...
 #| fig-height: 4.25
 #| fig-align: "center" 
 
-augment(ames_spline_fit, ames_test) %>% 
+augment(ames_spline_fit, ames_grid) %>% 
   mutate(
     .pred_lower = .pred - quant_90[1],
     .pred_upper = .pred - quant_90[2]
   ) %>% 
   ggplot(aes(Latitude)) + 
-  geom_point(aes(y = Sale_Price), alpha = .7) + 
+  geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
   geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
   geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
   geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2) +  
-  labs(y = "Sale Price (USD)") +
+  labs(y = "Sale Price (USD)", title = paste0( "Test Set (n = ", nrow(ames_test), ")")) +
   lims(y = y_rng)
 ```
 
@@ -294,7 +340,7 @@ ames_split <-
                            prop = c(0.6, .30))
 
 ames_train <- training(ames_split)
-ames_cal   <- validation(ames_split) # Use as calibration set
+ames_cal   <- validation(ames_split) # Use as calibration set (n=878)
 ames_test  <- testing(ames_split)
 
 # Setup some resampling for later use
@@ -356,7 +402,7 @@ conf_split_pred %>%
   geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
   geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
   geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2)  +  
-  labs(y = "Sale Price (USD)") +
+  labs(y = "Sale Price (USD)", title = "Test Set") +
   lims(y = y_rng)
 ```
 
@@ -399,7 +445,7 @@ conf_cv_pred %>%
   geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
   geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 1.2) + 
   geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 1.2)  +  
-  labs(y = "Sale Price (USD)") +
+  labs(y = "Sale Price (USD)", title = "Test Set") +
   lims(y = y_rng)
 ```
 
@@ -441,13 +487,13 @@ conf_qntl_pred %>%
   ggplot(aes(Latitude)) + 
   geom_point(data = ames_test, aes(y = Sale_Price), alpha = .7) + 
   geom_line(aes(y = .pred), col = "#D16BA5", linewidth = 1) + 
-  geom_line(aes(y = .pred_lower), col = "#00C9A7", linewidth = 3/4) + 
-  geom_line(aes(y = .pred_upper), col = "#00C9A7", linewidth = 3/4)  +  
-  labs(y = "Sale Price (USD)") +
+  geom_line(aes(y = .pred_lower), col = "#00C9A7") + 
+  geom_line(aes(y = .pred_upper), col = "#00C9A7")  +  
+  labs(y = "Sale Price (USD)", title = "Test Set") +
   lims(y = y_rng)
 ```
 
-## Does this work? 
+## Does it work? 
 
 ```{r}
 #| label: coverage

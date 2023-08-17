@@ -401,8 +401,8 @@ Max Kuhn
 </div>
 
 </section>
-<section id="weve-accumulated-some-data" class="slide level2">
-<h2>We’ve accumulated some data…</h2>
+<section id="lets-start-with-some-data" class="slide level2">
+<h2>Let’s start with some data…</h2>
 
 <img data-src="figures/final-data-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="is-this-new-data-point-discordant" class="slide level2">
@@ -411,7 +411,11 @@ Max Kuhn
 <img data-src="figures/discordant-data-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="a-simple-probability-statement" class="slide level2">
 <h2>A Simple Probability Statement</h2>
-<p>(not a tolerance interval)</p>
+<p>Without making parametric assumptions, we could say</p>
+<p><span class="math display">\[Pr[Q_L&lt; Y_{878+i} &lt; Q_U] = 1 - \alpha\]</span> where <span class="math inline">\(Q_L\)</span> and <span class="math inline">\(Q_U\)</span> are quantiles excluding <span class="math inline">\(\alpha/2\)</span> tail areas.</p>
+<p>(note: not a tolerance interval)</p>
+<p>So, for some <span class="math inline">\(\alpha\)</span>, we could say that data between <span class="math inline">\(Q_L\)</span> and <span class="math inline">\(Q_U\)</span> are “likely” to conform to our original, reference distribution.</p>
+<p>(note: conformal methods use adjusted quantiles)</p>
 </section>
 <section id="use-quantiles-to-define-conformity" class="slide level2">
 <h2>Use quantiles to define “conformity”</h2>
@@ -421,9 +425,16 @@ Max Kuhn
 <h2>What if the samples were residuals?</h2>
 
 <img data-src="figures/residual-quantiles-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
-<section id="applied-to-a-model" class="slide level2">
-<h2>Applied to a model…</h2>
-<p>Centering this interval around the predictions…</p>
+<section id="linear-regression-with-spline-features" class="slide level2">
+<h2>Linear regression with spline features</h2>
+
+<img data-src="figures/ames-fit-only-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<section id="compute-residuals-on-other-data" class="slide level2">
+<h2>Compute residuals on other data</h2>
+
+<img data-src="figures/ames-resid-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<section id="center-interval-around-predictions" class="slide level2">
+<h2>Center interval around predictions</h2>
 
 <img data-src="figures/ames-fit-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="is-this-a-prediction-interval" class="slide level2">
@@ -486,7 +497,7 @@ Max Kuhn
 <span id="cb2-6"><a href="#cb2-6"></a>                           <span class="at">prop =</span> <span class="fu">c</span>(<span class="fl">0.6</span>, .<span class="dv">30</span>))</span>
 <span id="cb2-7"><a href="#cb2-7"></a></span>
 <span id="cb2-8"><a href="#cb2-8"></a>ames_train <span class="ot">&lt;-</span> <span class="fu">training</span>(ames_split)</span>
-<span id="cb2-9"><a href="#cb2-9"></a>ames_cal   <span class="ot">&lt;-</span> <span class="fu">validation</span>(ames_split) <span class="co"># Use as calibration set</span></span>
+<span id="cb2-9"><a href="#cb2-9"></a>ames_cal   <span class="ot">&lt;-</span> <span class="fu">validation</span>(ames_split) <span class="co"># Use as calibration set (n=878)</span></span>
 <span id="cb2-10"><a href="#cb2-10"></a>ames_test  <span class="ot">&lt;-</span> <span class="fu">testing</span>(ames_split)</span>
 <span id="cb2-11"><a href="#cb2-11"></a></span>
 <span id="cb2-12"><a href="#cb2-12"></a><span class="co"># Setup some resampling for later use</span></span>
@@ -572,8 +583,8 @@ Max Kuhn
 <h2>Conformalized quantile regression</h2>
 
 <img data-src="figures/cubist-quantile-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
-<section id="does-this-work" class="slide level2">
-<h2>Does this work?</h2>
+<section id="does-it-work" class="slide level2">
+<h2>Does it work?</h2>
 <p>For our test set, the coverage for 90% predictions intervals:</p>
 <ul>
 <li>Split conformal: 89.9%</li>
