@@ -103,6 +103,10 @@ anim_save(
 knitr::include_graphics("figures/anime_sampling.gif")
 ```
 
+# Conformal inference methods can make prediction intervals without any parameteric assumptions
+
+# or... how to make prediction intervals with no parameteric asssumptions
+
 ## Let's start with some data...
 
 
@@ -298,7 +302,7 @@ Conformal intervals are using a completely different approach to these limits:
  * _Very_ frequentist
  * Most methods have an _average_ coverage of  $1-\alpha$
 
-## Pros/Cons
+## Pros
 
 * Basic methods assume exchangeability of the data. 
   - Specialized methods for time series (see the [modeltime package](https://business-science.github.io/modeltime/reference/modeltime_forecast.html)!).
@@ -306,7 +310,7 @@ Conformal intervals are using a completely different approach to these limits:
   - We've only implemented it for regression models so far.
 * Relatively fast (except for "full" conformal inference).
 
-## Pros/Cons
+## Cons
 
 * Extrapolating beyond training/calibration sets is problematic
   - Some methods may not reflect the extrapolation in the interval width. 
