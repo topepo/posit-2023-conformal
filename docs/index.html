@@ -502,7 +502,7 @@ Max Kuhn
 <span id="cb2-11"><a href="#cb2-11"></a></span>
 <span id="cb2-12"><a href="#cb2-12"></a><span class="co"># Setup some resampling for later use</span></span>
 <span id="cb2-13"><a href="#cb2-13"></a><span class="fu">set.seed</span>(<span class="dv">322</span>)</span>
-<span id="cb2-14"><a href="#cb2-14"></a>ames_folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(ames_train, <span class="at">v =</span> <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-14"><a href="#cb2-14"></a>ames_folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(ames_train, <span class="at">v =</span> <span class="dv">10</span>, <span class="at">strata =</span> Sale_Price)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="a-cubist-model" class="slide level2">
@@ -510,13 +510,13 @@ Max Kuhn
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="fu">library</span>(rules)</span>
 <span id="cb3-2"><a href="#cb3-2"></a></span>
-<span id="cb3-3"><a href="#cb3-3"></a>cubist_spec <span class="ot">&lt;-</span> <span class="fu">cubist_rules</span>(<span class="at">committees =</span> <span class="dv">25</span>)</span>
+<span id="cb3-3"><a href="#cb3-3"></a>cubist_spec <span class="ot">&lt;-</span> <span class="fu">cubist_rules</span>(<span class="at">committees =</span> <span class="dv">10</span>)</span>
 <span id="cb3-4"><a href="#cb3-4"></a>cubist_wflow <span class="ot">&lt;-</span> <span class="fu">workflow</span>(Sale_Price <span class="sc">~</span> Latitude, cubist_spec)</span>
 <span id="cb3-5"><a href="#cb3-5"></a></span>
 <span id="cb3-6"><a href="#cb3-6"></a>cubist_fit <span class="ot">&lt;-</span> cubist_wflow <span class="sc">%&gt;%</span> <span class="fu">fit</span>(<span class="at">data =</span> ames_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><br></p>
-<p>The fitted model is an ensemble of 78 linear regression models across different ranges of the predictor.</p>
+<p>The fitted model is an ensemble of 34 linear regression models across different ranges of the predictor.</p>
 </section>
 <section id="split-conformal-inference" class="slide level2">
 <h2>Split Conformal Inference</h2>
@@ -533,7 +533,7 @@ Max Kuhn
 <span id="cb4-10"><a href="#cb4-10"></a><span class="co">#&gt; # A tibble: 1 × 5</span></span>
 <span id="cb4-11"><a href="#cb4-11"></a><span class="co">#&gt;   .pred .pred_lower .pred_upper Sale_Price Latitude</span></span>
 <span id="cb4-12"><a href="#cb4-12"></a><span class="co">#&gt;   &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;</span></span>
-<span id="cb4-13"><a href="#cb4-13"></a><span class="co">#&gt; 1  5.36        5.12        5.59       5.28     42.1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-13"><a href="#cb4-13"></a><span class="co">#&gt; 1  5.35        5.11        5.59       5.28     42.1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="split-conformal-inference-1" class="slide level2">
@@ -587,8 +587,8 @@ Max Kuhn
 <h2>Does it work?</h2>
 <p>For our test set, the coverage for 90% predictions intervals:</p>
 <ul>
-<li>Split conformal: 89.9%</li>
-<li>CV+: 90.9%</li>
+<li>Split conformal: 90.5%</li>
+<li>CV+: 90.5%</li>
 <li>Conformalized quantile regression: 89.2%</li>
 </ul>
 <p>I also did a lot of simulations to make sure that the coverage was on-target.</p>

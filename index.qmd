@@ -345,7 +345,7 @@ ames_test  <- testing(ames_split)
 
 # Setup some resampling for later use
 set.seed(322)
-ames_folds <- vfold_cv(ames_train, v = 10)
+ames_folds <- vfold_cv(ames_train, v = 10, strata = Sale_Price)
 ```
 
 
@@ -355,7 +355,7 @@ ames_folds <- vfold_cv(ames_train, v = 10)
 #| label: cubist
 library(rules)
 
-cubist_spec <- cubist_rules(committees = 25)
+cubist_spec <- cubist_rules(committees = 10)
 cubist_wflow <- workflow(Sale_Price ~ Latitude, cubist_spec)
 
 cubist_fit <- cubist_wflow %>% fit(data = ames_train)
