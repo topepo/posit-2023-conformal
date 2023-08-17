@@ -401,15 +401,18 @@ Max Kuhn
 </div>
 
 </section>
-<section id="conformal-inference-methods-can-make-prediction-intervals-without-any-parameteric-assumptions" class="title-slide slide level1 center">
-<h1>Conformal inference methods can make prediction intervals without any parameteric assumptions</h1>
-
-</section>
-
 <section>
 <section id="or-how-to-make-prediction-intervals-with-no-parameteric-asssumptions" class="title-slide slide level1 center">
 <h1>or… how to make prediction intervals with no parameteric asssumptions</h1>
 
+</section>
+<section id="um-ok.-whats-a-prediction-interval" class="slide level2">
+<h2>Um OK. What’s a prediction interval?</h2>
+<p>Prediction interval with level <span class="math inline">\(\alpha\)</span>:</p>
+<blockquote>
+<p>A range of values that is likely to contain the value of a single new <em>observation</em> with probability <span class="math inline">\(1-\alpha\)</span>.</p>
+</blockquote>
+<p>It gives a sense of the variability in a new prediction.</p>
 </section>
 <section id="lets-start-with-some-data" class="slide level2">
 <h2>Let’s start with some data…</h2>
@@ -422,10 +425,9 @@ Max Kuhn
 <section id="a-simple-probability-statement" class="slide level2">
 <h2>A Simple Probability Statement</h2>
 <p>Without making parametric assumptions, we could say</p>
-<p><span class="math display">\[Pr[Q_L&lt; Y_{878+i} &lt; Q_U] = 1 - \alpha\]</span> where <span class="math inline">\(Q_L\)</span> and <span class="math inline">\(Q_U\)</span> are quantiles excluding <span class="math inline">\(\alpha/2\)</span> tail areas.</p>
-<p>(note: not a tolerance interval)</p>
-<p>So, for some <span class="math inline">\(\alpha\)</span>, we could say that data between <span class="math inline">\(Q_L\)</span> and <span class="math inline">\(Q_U\)</span> are “likely” to conform to our original, reference distribution.</p>
-<p>(note: conformal methods use adjusted quantiles)</p>
+<p><span class="math display">\[Pr[Q_L&lt; Y_{n_c} &lt; Q_U] = 1 - \alpha\]</span> where <span class="math inline">\(Q_L\)</span> and <span class="math inline">\(Q_U\)</span> are quantiles excluding <span class="math inline">\(\alpha/2\)</span> tail areas.</p>
+<p><br></p>
+<p>So, for some <span class="math inline">\(\alpha\)</span>, we could say that new data between <span class="math inline">\(Q_L\)</span> and <span class="math inline">\(Q_U\)</span> are “likely” to conform to our original, reference distribution.</p>
 </section>
 <section id="use-quantiles-to-define-conformity" class="slide level2">
 <h2>Use quantiles to define “conformity”</h2>
@@ -438,27 +440,25 @@ Max Kuhn
 <section id="linear-regression-with-spline-features" class="slide level2">
 <h2>Linear regression with spline features</h2>
 
-<img data-src="figures/ames-fit-only-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<img data-src="figures/fit-only-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="compute-residuals-on-other-data" class="slide level2">
 <h2>Compute residuals on other data</h2>
 
-<img data-src="figures/ames-resid-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<img data-src="figures/resid-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<section id="compute-interval-of-conforming-values" class="slide level2">
+<h2>Compute interval of “conforming” values</h2>
+
+<img data-src="figures/residual-quantiles2-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="center-interval-around-predictions" class="slide level2">
 <h2>Center interval around predictions</h2>
 
-<img data-src="figures/ames-fit-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<img data-src="figures/fit-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="is-this-a-prediction-interval" class="slide level2">
 <h2>Is this a prediction interval?</h2>
-<p>Prediction interval with level <span class="math inline">\(\alpha\)</span>:</p>
-<blockquote>
-<p>A range of values that is likely to contain the value of a single new <em>observation</em> with probability <span class="math inline">\(1-\alpha\)</span>.</p>
-</blockquote>
-<p>(note: not the true prediction)</p>
-<p>Conformal intervals are using a completely different approach to these limits:</p>
-<ul>
-<li><em>Very</em> frequentist</li>
-<li>Most methods have an <em>average</em> coverage of <span class="math inline">\(1-\alpha\)</span></li>
-</ul>
+<p>Conformal intervals are using a completely different approach to produce intervals with <em>average</em> coverage of <span class="math inline">\(1-\alpha\)</span></p>
+<p>(usually - for many conformal methods)</p>
+<p><br></p>
+<p><em>For the statisticians out there</em>: the methods have a strong Frequentist theme similar to nonparameteric inference.</p>
 </section>
 <section id="pros" class="slide level2">
 <h2>Pros</h2>
@@ -491,117 +491,105 @@ Max Kuhn
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="fu">library</span>(tidymodels)</span>
 <span id="cb1-2"><a href="#cb1-2"></a></span>
-<span id="cb1-3"><a href="#cb1-3"></a><span class="fu">data</span>(ames)</span>
-<span id="cb1-4"><a href="#cb1-4"></a>ames <span class="ot">&lt;-</span> </span>
-<span id="cb1-5"><a href="#cb1-5"></a>  ames <span class="sc">%&gt;%</span> </span>
-<span id="cb1-6"><a href="#cb1-6"></a>  <span class="fu">select</span>(Sale_Price, Latitude) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-7"><a href="#cb1-7"></a>  <span class="fu">mutate</span>(<span class="at">Sale_Price =</span> <span class="fu">log10</span>(Sale_Price))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="co"># These are simulated data:</span></span>
+<span id="cb1-4"><a href="#cb1-4"></a><span class="fu">nrow</span>(train_data)</span>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="co">#&gt; [1] 1000</span></span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="fu">nrow</span>(cal_data)</span>
+<span id="cb1-7"><a href="#cb1-7"></a><span class="co">#&gt; [1] 500</span></span>
+<span id="cb1-8"><a href="#cb1-8"></a><span class="fu">nrow</span>(test_data)</span>
+<span id="cb1-9"><a href="#cb1-9"></a><span class="co">#&gt; [1] 500</span></span>
+<span id="cb1-10"><a href="#cb1-10"></a></span>
+<span id="cb1-11"><a href="#cb1-11"></a><span class="co"># Setup some resampling for later use</span></span>
+<span id="cb1-12"><a href="#cb1-12"></a><span class="fu">set.seed</span>(<span class="dv">322</span>)</span>
+<span id="cb1-13"><a href="#cb1-13"></a>cv_folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(train_data, <span class="at">v =</span> <span class="dv">10</span>, <span class="at">strata =</span> outcome)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="spend-the-data" class="slide level2">
-<h2>Spend the data</h2>
+<section id="a-support-vector-machine-model" class="slide level2">
+<h2>A support vector machine model</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2" data-code-line-numbers="|4|6|9|"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="fu">set.seed</span>(<span class="dv">129</span>)</span>
-<span id="cb2-2"><a href="#cb2-2"></a><span class="co"># 60% in training, 30% in calibration, and 10% in testing</span></span>
-<span id="cb2-3"><a href="#cb2-3"></a>ames_split <span class="ot">&lt;-</span></span>
-<span id="cb2-4"><a href="#cb2-4"></a>  <span class="fu">initial_validation_split</span>(ames, </span>
-<span id="cb2-5"><a href="#cb2-5"></a>                           <span class="at">strata =</span> Sale_Price, </span>
-<span id="cb2-6"><a href="#cb2-6"></a>                           <span class="at">prop =</span> <span class="fu">c</span>(<span class="fl">0.6</span>, .<span class="dv">30</span>))</span>
-<span id="cb2-7"><a href="#cb2-7"></a></span>
-<span id="cb2-8"><a href="#cb2-8"></a>ames_train <span class="ot">&lt;-</span> <span class="fu">training</span>(ames_split)</span>
-<span id="cb2-9"><a href="#cb2-9"></a>ames_cal   <span class="ot">&lt;-</span> <span class="fu">validation</span>(ames_split) <span class="co"># Use as calibration set (n=878)</span></span>
-<span id="cb2-10"><a href="#cb2-10"></a>ames_test  <span class="ot">&lt;-</span> <span class="fu">testing</span>(ames_split)</span>
-<span id="cb2-11"><a href="#cb2-11"></a></span>
-<span id="cb2-12"><a href="#cb2-12"></a><span class="co"># Setup some resampling for later use</span></span>
-<span id="cb2-13"><a href="#cb2-13"></a><span class="fu">set.seed</span>(<span class="dv">322</span>)</span>
-<span id="cb2-14"><a href="#cb2-14"></a>ames_folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(ames_train, <span class="at">v =</span> <span class="dv">10</span>, <span class="at">strata =</span> Sale_Price)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-</section>
-<section id="a-cubist-model" class="slide level2">
-<h2>A Cubist model</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="fu">library</span>(rules)</span>
-<span id="cb3-2"><a href="#cb3-2"></a></span>
-<span id="cb3-3"><a href="#cb3-3"></a>cubist_spec <span class="ot">&lt;-</span> <span class="fu">cubist_rules</span>(<span class="at">committees =</span> <span class="dv">10</span>)</span>
-<span id="cb3-4"><a href="#cb3-4"></a>cubist_wflow <span class="ot">&lt;-</span> <span class="fu">workflow</span>(Sale_Price <span class="sc">~</span> Latitude, cubist_spec)</span>
-<span id="cb3-5"><a href="#cb3-5"></a></span>
-<span id="cb3-6"><a href="#cb3-6"></a>cubist_fit <span class="ot">&lt;-</span> cubist_wflow <span class="sc">%&gt;%</span> <span class="fu">fit</span>(<span class="at">data =</span> ames_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a>svm_spec <span class="ot">&lt;-</span> </span>
+<span id="cb2-2"><a href="#cb2-2"></a>  <span class="fu">svm_rbf</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb2-3"><a href="#cb2-3"></a>  <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4"></a></span>
+<span id="cb2-5"><a href="#cb2-5"></a>svm_wflow <span class="ot">&lt;-</span> <span class="fu">workflow</span>(outcome <span class="sc">~</span> predictor, svm_spec)</span>
+<span id="cb2-6"><a href="#cb2-6"></a></span>
+<span id="cb2-7"><a href="#cb2-7"></a>svm_fit <span class="ot">&lt;-</span> svm_wflow <span class="sc">%&gt;%</span> <span class="fu">fit</span>(<span class="at">data =</span> train_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><br></p>
-<p>The fitted model is an ensemble of 34 linear regression models across different ranges of the predictor.</p>
+<p>Now let’s look at three functions for producing intervals…</p>
 </section>
 <section id="split-conformal-inference" class="slide level2">
 <h2>Split Conformal Inference</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4" data-code-line-numbers="|1,3|6|"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="fu">library</span>(probably)</span>
-<span id="cb4-2"><a href="#cb4-2"></a></span>
-<span id="cb4-3"><a href="#cb4-3"></a>conf_split <span class="ot">&lt;-</span> <span class="fu">int_conformal_split</span>(cubist_fit, <span class="at">cal_data =</span> ames_cal)</span>
-<span id="cb4-4"><a href="#cb4-4"></a></span>
-<span id="cb4-5"><a href="#cb4-5"></a>conf_split_test <span class="ot">&lt;-</span> </span>
-<span id="cb4-6"><a href="#cb4-6"></a>  <span class="fu">predict</span>(conf_split, ames_test, <span class="at">level =</span> <span class="fl">0.90</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb4-7"><a href="#cb4-7"></a>  <span class="fu">bind_cols</span>(ames_test)</span>
-<span id="cb4-8"><a href="#cb4-8"></a></span>
-<span id="cb4-9"><a href="#cb4-9"></a>conf_split_test <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span>)</span>
-<span id="cb4-10"><a href="#cb4-10"></a><span class="co">#&gt; # A tibble: 1 × 5</span></span>
-<span id="cb4-11"><a href="#cb4-11"></a><span class="co">#&gt;   .pred .pred_lower .pred_upper Sale_Price Latitude</span></span>
-<span id="cb4-12"><a href="#cb4-12"></a><span class="co">#&gt;   &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;</span></span>
-<span id="cb4-13"><a href="#cb4-13"></a><span class="co">#&gt; 1  5.35        5.11        5.59       5.28     42.1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3" data-code-line-numbers="|1,3|6|9-13|"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="fu">library</span>(probably)</span>
+<span id="cb3-2"><a href="#cb3-2"></a></span>
+<span id="cb3-3"><a href="#cb3-3"></a>conf_split <span class="ot">&lt;-</span> <span class="fu">int_conformal_split</span>(svm_fit, <span class="at">cal_data =</span> cal_data)</span>
+<span id="cb3-4"><a href="#cb3-4"></a></span>
+<span id="cb3-5"><a href="#cb3-5"></a>conf_split_test <span class="ot">&lt;-</span> </span>
+<span id="cb3-6"><a href="#cb3-6"></a>  <span class="fu">predict</span>(conf_split, test_data, <span class="at">level =</span> <span class="fl">0.90</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-7"><a href="#cb3-7"></a>  <span class="fu">bind_cols</span>(test_data)</span>
+<span id="cb3-8"><a href="#cb3-8"></a></span>
+<span id="cb3-9"><a href="#cb3-9"></a>conf_split_test <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span>)</span>
+<span id="cb3-10"><a href="#cb3-10"></a><span class="co">#&gt; # A tibble: 1 × 5</span></span>
+<span id="cb3-11"><a href="#cb3-11"></a><span class="co">#&gt;   .pred .pred_lower .pred_upper predictor outcome</span></span>
+<span id="cb3-12"><a href="#cb3-12"></a><span class="co">#&gt;   &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;</span></span>
+<span id="cb3-13"><a href="#cb3-13"></a><span class="co">#&gt; 1 0.264       0.179       0.350   0.00528   0.160</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="split-conformal-inference-1" class="slide level2">
 <h2>Split Conformal Inference</h2>
 
-<img data-src="figures/cubist-split-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<img data-src="figures/svm-split-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="cv-inference" class="slide level2">
 <h2>CV+ Inference</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5" data-code-line-numbers="|1-2|8|"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># 'extract' to save the 10 fitted models</span></span>
-<span id="cb5-2"><a href="#cb5-2"></a>ctrl <span class="ot">&lt;-</span> <span class="fu">control_resamples</span>(<span class="at">save_pred =</span> <span class="cn">TRUE</span>, <span class="at">extract =</span> I)</span>
-<span id="cb5-3"><a href="#cb5-3"></a></span>
-<span id="cb5-4"><a href="#cb5-4"></a>cubist_resampled <span class="ot">&lt;-</span> </span>
-<span id="cb5-5"><a href="#cb5-5"></a>  cubist_wflow <span class="sc">%&gt;%</span> </span>
-<span id="cb5-6"><a href="#cb5-6"></a>  <span class="fu">fit_resamples</span>(<span class="at">resamples =</span> ames_folds, <span class="at">control =</span> ctrl)</span>
-<span id="cb5-7"><a href="#cb5-7"></a></span>
-<span id="cb5-8"><a href="#cb5-8"></a>conf_cv <span class="ot">&lt;-</span> <span class="fu">int_conformal_cv</span>(cubist_resampled)</span>
-<span id="cb5-9"><a href="#cb5-9"></a></span>
-<span id="cb5-10"><a href="#cb5-10"></a>conf_cv_test <span class="ot">&lt;-</span> </span>
-<span id="cb5-11"><a href="#cb5-11"></a>  <span class="fu">predict</span>(conf_cv, ames_test, <span class="at">level =</span> <span class="fl">0.90</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb5-12"><a href="#cb5-12"></a>  <span class="fu">bind_cols</span>(ames_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4" data-code-line-numbers="|1-2|4-6|8|11|"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="co"># 'extract' to save the 10 fitted models</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a>ctrl <span class="ot">&lt;-</span> <span class="fu">control_resamples</span>(<span class="at">save_pred =</span> <span class="cn">TRUE</span>, <span class="at">extract =</span> I)</span>
+<span id="cb4-3"><a href="#cb4-3"></a></span>
+<span id="cb4-4"><a href="#cb4-4"></a>svm_resampled <span class="ot">&lt;-</span> </span>
+<span id="cb4-5"><a href="#cb4-5"></a>  svm_wflow <span class="sc">%&gt;%</span> </span>
+<span id="cb4-6"><a href="#cb4-6"></a>  <span class="fu">fit_resamples</span>(<span class="at">resamples =</span> cv_folds, <span class="at">control =</span> ctrl)</span>
+<span id="cb4-7"><a href="#cb4-7"></a></span>
+<span id="cb4-8"><a href="#cb4-8"></a>conf_cv <span class="ot">&lt;-</span> <span class="fu">int_conformal_cv</span>(svm_resampled)</span>
+<span id="cb4-9"><a href="#cb4-9"></a></span>
+<span id="cb4-10"><a href="#cb4-10"></a>conf_cv_test <span class="ot">&lt;-</span> </span>
+<span id="cb4-11"><a href="#cb4-11"></a>  <span class="fu">predict</span>(conf_cv, test_data, <span class="at">level =</span> <span class="fl">0.90</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-12"><a href="#cb4-12"></a>  <span class="fu">bind_cols</span>(test_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="cv-inference-1" class="slide level2">
 <h2>CV+ Inference</h2>
 
-<img data-src="figures/cubist-cv-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<img data-src="figures/svm-cv-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="conformalized-quantile-regression" class="slide level2">
 <h2>Conformalized quantile regression</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6" data-code-line-numbers="|5-9|12|"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># We have to pass the data sets and pre-set </span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="co"># the interval coverage:</span></span>
-<span id="cb6-3"><a href="#cb6-3"></a><span class="fu">set.seed</span>(<span class="dv">837</span>)</span>
-<span id="cb6-4"><a href="#cb6-4"></a>conf_qntl <span class="ot">&lt;-</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a>  <span class="fu">int_conformal_quantile</span>(cubist_fit,</span>
-<span id="cb6-6"><a href="#cb6-6"></a>                         <span class="at">train_data =</span> ames_train,</span>
-<span id="cb6-7"><a href="#cb6-7"></a>                         <span class="at">cal_data =</span> ames_cal,  <span class="co">#&lt;- split sample </span></span>
-<span id="cb6-8"><a href="#cb6-8"></a>                         <span class="at">level =</span> <span class="fl">0.90</span>,</span>
-<span id="cb6-9"><a href="#cb6-9"></a>                         <span class="at">ntree =</span> <span class="dv">2000</span>)</span>
-<span id="cb6-10"><a href="#cb6-10"></a></span>
-<span id="cb6-11"><a href="#cb6-11"></a>conf_qntl_test <span class="ot">&lt;-</span> </span>
-<span id="cb6-12"><a href="#cb6-12"></a>  <span class="fu">predict</span>(conf_qntl, ames_test) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-13"><a href="#cb6-13"></a>  <span class="fu">bind_cols</span>(ames_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5" data-code-line-numbers="|5-9|12|"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># We have to pass the data sets and pre-set </span></span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="co"># the interval coverage:</span></span>
+<span id="cb5-3"><a href="#cb5-3"></a><span class="fu">set.seed</span>(<span class="dv">837</span>)</span>
+<span id="cb5-4"><a href="#cb5-4"></a>conf_qntl <span class="ot">&lt;-</span></span>
+<span id="cb5-5"><a href="#cb5-5"></a>  <span class="fu">int_conformal_quantile</span>(svm_fit,</span>
+<span id="cb5-6"><a href="#cb5-6"></a>                         <span class="at">train_data =</span> train_data,</span>
+<span id="cb5-7"><a href="#cb5-7"></a>                         <span class="at">cal_data =</span> cal_data,  <span class="co">#&lt;- split sample </span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>                         <span class="at">level =</span> <span class="fl">0.90</span>,</span>
+<span id="cb5-9"><a href="#cb5-9"></a>                         <span class="at">ntree =</span> <span class="dv">2000</span>)</span>
+<span id="cb5-10"><a href="#cb5-10"></a></span>
+<span id="cb5-11"><a href="#cb5-11"></a>conf_qntl_test <span class="ot">&lt;-</span> </span>
+<span id="cb5-12"><a href="#cb5-12"></a>  <span class="fu">predict</span>(conf_qntl, test_data) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-13"><a href="#cb5-13"></a>  <span class="fu">bind_cols</span>(test_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="conformalized-quantile-regression-1" class="slide level2">
 <h2>Conformalized quantile regression</h2>
 
-<img data-src="figures/cubist-quantile-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
+<img data-src="figures/svm-quantile-1.svg" style="width:90.0%" class="r-stretch quarto-figure-center"></section>
 <section id="does-it-work" class="slide level2">
 <h2>Does it work?</h2>
 <p>For our test set, the coverage for 90% predictions intervals:</p>
 <ul>
-<li>Split conformal: 90.5%</li>
-<li>CV+: 90.5%</li>
-<li>Conformalized quantile regression: 89.2%</li>
+<li>Split conformal: 89.6%</li>
+<li>CV+: 88%</li>
+<li>Conformalized quantile regression: 89.6%</li>
 </ul>
 <p>I also did a lot of simulations to make sure that the coverage was on-target.</p>
 <p>These can be found at <a href="https://github.com/topepo/conformal_sim"><code>https://github.com/topepo/conformal_sim</code></a>.</p>
