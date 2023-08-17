@@ -459,17 +459,19 @@ Max Kuhn
 </ul></li>
 <li>Can work with any regression or classification model.
 <ul>
-<li>We’ve only implemented regression so far.</li>
+<li>We’ve only implemented it for regression models so far.</li>
 </ul></li>
+<li>Relatively fast (except for “full” conformal inference).</li>
 </ul>
 </section>
 <section id="proscons-1" class="slide level2">
 <h2>Pros/Cons</h2>
 <ul>
-<li>Relatively fast (except for “full” conformal inference).</li>
-<li>Extrapolating beyond training/calibration sets can go <a href="https://www.tidymodels.org/learn/models/conformal-regression/#the-major-downside"><em>really</em> poorly</a>
+<li>Extrapolating beyond training/calibration sets is problematic
 <ul>
-<li>The applicable package is a big help with this.</li>
+<li>Some methods may not reflect the extrapolation in the interval width.</li>
+<li>Other conformal methods can produce <a href="https://www.tidymodels.org/learn/models/conformal-regression/#the-major-downside">especially bad results</a></li>
+<li>The applicable package can be a big help identifying extrapolation.</li>
 </ul></li>
 <li>Probably not great for small sample sizes.</li>
 </ul>
@@ -605,6 +607,16 @@ Max Kuhn
 <li>New methodologies as they pop up.</li>
 </ul>
 <p>Thanks: the tidymodels group, Joe Rickert, and the conference committee.</p>
+</section>
+<section id="learning-more" class="slide level2">
+<h2>Learning More</h2>
+<ul>
+<li><a href="https://www.tidymodels.org/learn/models/conformal-regression/">An article</a> on <code>tidymodels.org</code></li>
+<li><a href="https://christophmolnar.com/books/conformal-prediction/"><em>Introduction To Conformal Prediction With Python</em></a> by Christoph Molnar (highly recommended)</li>
+<li><a href="https://github.com/valeman/awesome-conformal-prediction"><code>awesome-conformal-prediction</code></a> on GitHub.</li>
+<li><a href="https://www.stat.berkeley.edu/~ryantibs/statlearn-s23/lectures/conformal.pdf">Ryan Tibshirani’s notes</a> (pdf)</li>
+<li>Angelopoulos, Anastasios N., and Stephen Bates. “<a href="https://arxiv.org/abs/2107.07511">A gentle introduction to conformal prediction and distribution-free uncertainty quantification</a>.” arXiv preprint arXiv:2107.07511 (2021).</li>
+</ul>
 <div class="footer footer-default">
 <p><a href="https://topepo.github.io/posit-2023-conformal" class="uri">https://topepo.github.io/posit-2023-conformal</a></p>
 </div>
