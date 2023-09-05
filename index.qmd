@@ -61,6 +61,14 @@ outlier_at <- -0.14
 # or... how to make prediction intervals with no parameteric asssumptions
 
 
+# but first...
+
+
+::: {.r-fit-text}
+questions: pos.it/slido-CD
+:::
+
+
 ## Um OK. What's a prediction interval? 
 
 :::: {.columns}
